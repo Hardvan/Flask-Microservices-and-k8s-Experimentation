@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-e
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-e
+  template:
+    metadata:
+      labels:
+        app: service-e
+    spec:
+      containers:
+        - name: service-e-container
+          image: hardvan/flask-service-e:latest
+          ports:
+            - containerPort: 5004
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-e
+spec:
+  selector:
+    app: service-e
+  ports:
+    - protocol: TCP
+      port: 5004
+      targetPort: 5004

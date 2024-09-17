@@ -1,6 +1,6 @@
 # Flask Microservices & k8s Experimentation
 
-This project demonstrates how to create and deploy Flask microservices on Kubernetes (k8s). The microservices (`Service A` and `Service B`) communicate with each other within the k8s cluster, with `Service A` making internal requests to `Service B`. The setup involves Dockerizing the Flask applications and deploying them on Kubernetes.
+This project demonstrates how to create and deploy 5 Flask microservices on Kubernetes (k8s). The microservices (`Service A`, `Service B`, `Service C`, `Service D`, and `Service E`) communicate with each other within the k8s cluster. The setup involves Dockerizing the Flask applications and deploying them on Kubernetes.
 
 ## Table of Contents
 
@@ -8,6 +8,7 @@ This project demonstrates how to create and deploy Flask microservices on Kubern
   - [Table of Contents](#table-of-contents)
   - [Project Structure](#project-structure)
   - [Prerequisites](#prerequisites)
+  - [Microservice Overview](#microservice-overview)
   - [Setup Guide](#setup-guide)
     - [Step 1: Dockerize the Flask Services](#step-1-dockerize-the-flask-services)
     - [Step 2: Build and Push Docker Images](#step-2-build-and-push-docker-images)
@@ -27,9 +28,21 @@ This project demonstrates how to create and deploy Flask microservices on Kubern
     📂 Service B
         - app_b.py                          # Flask application for Service B
         - Dockerfile                        # Dockerfile for Service B
+    📂 Service C
+        - app_c.py                          # Flask application for Service C
+        - Dockerfile                        # Dockerfile for Service C
+    📂 Service D
+        - app_d.py                          # Flask application for Service D
+        - Dockerfile                        # Dockerfile for Service D
+    📂 Service E
+        - app_e.py                          # Flask application for Service E
+        - Dockerfile                        # Dockerfile for Service E
     📂 k8s
         - deployment_service_a.yaml         # Kubernetes Deployment YAML for Service A
         - deployment_service_b.yaml         # Kubernetes Deployment YAML for Service B
+        - deployment_service_c.yaml         # Kubernetes Deployment YAML for Service C
+        - deployment_service_d.yaml         # Kubernetes Deployment YAML for Service D
+        - deployment_service_e.yaml         # Kubernetes Deployment YAML for Service E
 - README.md                                 # This README file
 - service_a_loadbalancer.yaml               # Kubernetes Service LoadBalancer configuration for Service A
 ```
@@ -42,11 +55,19 @@ This project demonstrates how to create and deploy Flask microservices on Kubern
 - Python 3.x
 - A Docker Hub account (or any other container registry, optional)
 
+## Microservice Overview
+
+- **Service A**: Main service that communicates with other services.
+- **Service B**: Returns a simple message to Service A.
+- **Service C**: Returns a different message to Service A.
+- **Service D**: Returns some status to Service A.
+- **Service E**: Processes some data and responds to Service A.
+
 ## Setup Guide
 
 ### Step 1: Dockerize the Flask Services
 
-Each microservice (Service A and Service B) has its own Dockerfile. Build Docker images for these services.
+Each microservice (Service A, B, C, D, and E) has its own Dockerfile. Build Docker images for these services.
 
 For `Service A`:
 
@@ -62,6 +83,27 @@ cd Service\ B
 docker build -t flask-service-b:latest .
 ```
 
+For `Service C`:
+
+```bash
+cd Service\ C
+docker build -t flask-service-c:latest .
+```
+
+For `Service D`:
+
+```bash
+cd Service\ D
+docker build -t flask-service-d:latest .
+```
+
+For `Service E`:
+
+```bash
+cd Service\ E
+docker build -t flask-service-e:latest .
+```
+
 ### Step 2: Build and Push Docker Images
 
 If you want to push the images to a container registry (e.g., Docker Hub), first tag and push them.
@@ -72,6 +114,15 @@ docker push <your_dockerhub_username>/flask-service-a:latest
 
 docker tag flask-service-b:latest <your_dockerhub_username>/flask-service-b:latest
 docker push <your_dockerhub_username>/flask-service-b:latest
+
+docker tag flask-service-c:latest <your_dockerhub_username>/flask-service-c:latest
+docker push <your_dockerhub_username>/flask-service-c:latest
+
+docker tag flask-service-d:latest <your_dockerhub_username>/flask-service-d:latest
+docker push <your_dockerhub_username>/flask-service-d:latest
+
+docker tag flask-service-e:latest <your_dockerhub_username>/flask-service-e:latest
+docker push <your_dockerhub_username>/flask-service-e:latest
 ```
 
 If you're using local Docker images with Minikube or a local cluster, you can skip pushing them.
@@ -80,11 +131,11 @@ If you're using local Docker images with Minikube or a local cluster, you can sk
 
 Deploy the microservices using the Kubernetes deployment YAML files.
 
-Apply the deployment configurations for Service A and Service B:
-
 ```bash
 kubectl apply -f k8s/
 ```
+
+This will deploy all services (A to E) onto the Kubernetes cluster.
 
 ### Step 4: Port Forward for Local Testing
 
@@ -97,14 +148,7 @@ kubectl get pods                          # Get the pod name for Service A
 kubectl port-forward <service-a-pod-name> 8080:5000
 ```
 
-To forward `Service B` (if needed):
-
-```bash
-kubectl get pods                          # Get the pod name for Service B
-kubectl port-forward <service-b-pod-name> 8081:5001
-```
-
-Now, you can access Service A at `http://localhost:8080/service_a`, and it will make internal calls to Service B.
+You can do similar port forwarding for other services (e.g., `Service B`, `Service C`, etc.) if you need to test them directly.
 
 ## Testing the Application
 
@@ -114,7 +158,7 @@ After port forwarding, test `Service A` by making a request to:
 curl http://localhost:8080/service_a
 ```
 
-You should receive a JSON response with data from both `Service A` and `Service B`:
+`Service A` will internally call `Service B`, `Service C`, `Service D`, and `Service E`, and you should see a JSON response like this:
 
 ```json
 {
@@ -122,6 +166,18 @@ You should receive a JSON response with data from both `Service A` and `Service 
   "response_from_b": {
     "service": "B",
     "message": "Hello from Service B"
+  },
+  "response_from_c": {
+    "service": "C",
+    "message": "Hello from Service C"
+  },
+  "response_from_d": {
+    "service": "D",
+    "status": "Service D is healthy"
+  },
+  "response_from_e": {
+    "service": "E",
+    "processed_data": "Data from Service E"
   }
 }
 ```
@@ -131,9 +187,8 @@ You should receive a JSON response with data from both `Service A` and `Service 
 To delete the Kubernetes deployments and services:
 
 ```bash
-kubectl delete -f k8s/deployment_service_a.yaml
-kubectl delete -f k8s/deployment_service_b.yaml
+kubectl delete -f k8s/
 kubectl delete -f service_a_loadbalancer.yaml  # If used
 ```
 
-This will remove the microservices from your Kubernetes cluster.
+This will remove all microservices from your Kubernetes cluster.
